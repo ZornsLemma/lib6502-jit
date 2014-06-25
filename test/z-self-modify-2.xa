@@ -1,0 +1,125 @@
+; This test attempts to confirm that as subtle potential bug in the hybrid JIT
+; implementation is not present.
+;
+; The potential problem is as follows:
+; - we decide to JIT some code
+; - we take a snapshot of memory
+; - we kick off a JIT thread which *works off the main memory array*, not the 
+;   snapshot
+; - in the meantime the interpreter executes some code which modifies the code
+;   being JITted before it is actually jitted.
+; - we JIT the modified version of the code
+; - the interpreter then executes some code which reverts the change (A)
+; - we decide to execute the JITted function. We check memory against the memory
+;   snapshot taken when we started JITting and find no differences in any 
+;   addresses which contain code, because of the previous step marked (A).
+; - boom, our JITted code is not doing what it should.
+;
+; The fix for this problem is simply to ensure that the JIT thread works off
+; the snapshot of memory taken when we launched the JIT thread. Note that even
+; if we fail to do this, self-modifying code which doesn't "undo" itself will
+; be noticed when we use the memory snapshot to decide if the JITted code is
+; still valid.
+;
+; This test case should execute correctly in all modes (of course), but in
+; hybrid mode it should *fail* if the implementation is temporarily changed to
+; JIT from mpu->memory and not memory_snapshot. At the time of writing it does.
+
+
+
+#include "config.xa"
+
+COUNT1 = $71
+COUNT2 = $72
+COUNT3 = $73
+
+; We loop lots to get as much chance of a problem occurring as possible.
+	STZ COUNT1
+LOOP1
+	LDY #0
+LOOP2
+	LDX #0
+LOOP3
+
+; The heart of the test. We LDA #n, then CMP <address of n>. If the two don't
+; match we have a problem.
+LDAOP
+	LDA #3
+	CMP LDAOP+1
+	BNE FAIL
+
+; We now modify the LDA operand...
+	INC LDAOP+1
+
+; ... and occupy as much of the interpreter's time as possible while the JIT
+; thread picks up the modified version (if it's not working from the snapshot).
+; In reality we probably go round multiple times before the JIT completes.
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+
+; We now put the operand back. Since we only switch from interpreting to JITting
+; on a control transfer, we know the transition will occur at a point when we've
+; put the operand back, which is helpful.
+	DEC LDAOP+1
+
+; And round and round we go.
+	DEX
+	BNE LOOP3
+	DEY
+	BNE LOOP2
+	DEC COUNT1
+	BNE LOOP1
+
+OK
+	LDA #'Y'
+	JSR OSWRCH
+	JMP QUIT
+FAIL
+	LDA #'N'
+	JSR OSWRCH
+	JMP QUIT

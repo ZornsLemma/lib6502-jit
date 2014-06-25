@@ -1,0 +1,3 @@
+BC
+BRK instruction: address 43AA opcode 00
+PC=43AC SP=01FC A=43 X=FF Y=00 P=04 -----I--

@@ -1,0 +1,28 @@
+#include "config.xa"
+
+; It's not important this is self-modifying code, this is just the easiest way
+; to get code at the relevant addresses without fighting with the assembler and
+; the fact run6502 will clobber the top of memory to set up various vectors.
+
+	LDA #$A9 ; LDA #n
+	STA $FFFE
+	STA $00
+	LDA #'N'
+	STA $FFFF
+	LDA #'Y'
+	STA $01
+
+	LDA #$20 ; JSR abs
+	STA $02
+	LDA #$EE
+	STA $03
+	LDA #$FF
+	STA $04
+	LDA #$4C ; JMP abs
+	STA $05
+	LDA #<QUIT
+	STA $06
+	LDA #>QUIT
+	STA $07
+
+	JMP $FFFE

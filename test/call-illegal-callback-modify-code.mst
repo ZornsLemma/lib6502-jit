@@ -1,0 +1,20 @@
+CAAAA
+
+ill: address 1003 opcode 13 memory 13
+PC=1004 SP=0100 A=0A X=00 Y=00 P=04 -----I--
+CAABC
+
+ill: address 1007 opcode 13 memory 13
+PC=1008 SP=0100 A=0A X=00 Y=00 P=04 -----I--
+CAACE
+
+call: address 2000 opcode 20
+PC=100E SP=01FE A=0A X=00 Y=00 P=04 -----I--
+CBCCE
+
+call: address 2000 opcode 20
+PC=1014 SP=01FE A=0A X=00 Y=00 P=04 -----I--
+CCECE
+
+BRK instruction: address 1017 opcode 00
+PC=1019 SP=01FD A=0A X=00 Y=00 P=04 -----I--

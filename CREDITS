@@ -1,0 +1,33 @@
+lib6502-jit implements (nearly) the same API as Ian Piumarta's lib6502
+(http://www.piumarta.com/software/lib6502/) and includes virtually all of
+lib6502's code and documentation with only minor modifications; the lib6502
+emulation code is used to implement the interpreted and hybrid emulation modes
+in lib6502-jit. The contents of the examples and man directories are almost
+verbatim copies of those in lib6502. Thanks to Ian for making lib6502
+available. Please do not send bug reports regarding lib6502-jit to Ian!
+
+This distribution itself doesn't contain any LLVM code, but obviously without
+the LLVM project lib6502-jit could not exist.
+
+valgrind.h is taken from Valgrind (http://valgrind.org/).
+
+build-aux/tap-driver.sh is part of GNU Automake and was taken from
+https://raw.githubusercontent.com/kergoth/automake/master/lib/tap-driver.sh.
+
+m4/boost.m4 (used to autoconfigure the build against the Boost libraries) is
+taken from https://github.com/tsuna/boost.m4.
+
+While I'd be lying if I said I enjoyed working with Autotools, I am grateful
+for the work people have put in to make it possible to build packages portably
+on a range of different platforms.
+
+The technique (but not the code) used to translate a JITted function's machine
+code into assembly in Function::dump_machine_code() is taken from the libjit
+(https://www.gnu.org/software/libjit/) dump_object_code() function.
+
+The algorithm used to implement ADC/SDC in decimal mode is taken from
+http://www.6502.org/tutorials/decimal_mode.html. The test program on the same
+page was used to validate the implementation.
+
+Klaus Dormann's "6502 functional test" and "65C02 extended opcodes test" were
+used to validate the behaviour of the emulation.

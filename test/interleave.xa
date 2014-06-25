@@ -1,0 +1,38 @@
+#include "config.xa"
+
+	JSR SETX10
+	CPX #10
+	BNE FAIL
+	JSR SETX30
+	CPX #30
+	BNE FAIL
+	JSR SETX20
+	CPX #20
+	BNE FAIL
+	JSR SETX30
+	CPX #30
+	BNE FAIL
+	JSR SETX10
+	CPX #10
+	BNE FAIL
+	JSR SETX20
+	CPX #20
+	BNE FAIL
+
+SUCCESS
+	LDA #'Y'
+	JSR OSWRCH
+	JMP QUIT
+
+FAIL
+	LDA #'N'
+	JSR OSWRCH
+	JMP QUIT
+
+; example taken from http://www.6502.org/tutorials/6502opcodes.html
+SETX10	LDX #10
+	.byte $2C
+SETX20	LDX #20
+	.byte $2C
+SETX30	LDX #30
+	RTS

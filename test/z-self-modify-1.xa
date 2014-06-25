@@ -1,0 +1,94 @@
+; This test attempts to confirm that in hybrid mode, the JITted code is
+; discarded correctly if it's modified by the interpreter.
+
+#include "config.xa"
+
+COUNT1 = $71
+COUNT2 = $72
+COUNT3 = $73
+
+; We loop lots to get as much chance of a problem occurring as possible.
+	STZ COUNT1
+LOOP1
+	LDY #0
+LOOP2
+	LDX #0
+LOOP3
+
+; The heart of the test. We LDA #n, then CMP <address of n>. If the two don't
+; match we have a problem.
+LDAOP
+	LDA #3
+	CMP LDAOP+1
+	BNE FAIL
+
+; We now modify the LDA operand...
+	INC LDAOP+1
+
+; ... and occupy as much of the interpreter's time as possible while the JIT
+; thread picks up the modified version (if it's not working from the snapshot).
+; In reality we probably go round multiple times before the JIT completes.
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+
+; And round and round we go.
+	DEX
+	BNE LOOP3
+	DEY
+	BNE LOOP2
+	DEC COUNT1
+	BNE LOOP1
+
+OK
+	LDA #'Y'
+	JSR OSWRCH
+	JMP QUIT
+FAIL
+	LDA #'N'
+	JSR OSWRCH
+	JMP QUIT

@@ -1,0 +1,84 @@
+lib6502-jit is a (mostly) compatible implementation of Ian Piumarta's lib6502
+which uses LLVM to perform JIT compilation of 6502 machine code to host code.
+This will doubtless be useful to the large community of people stuck doing
+number-crunching tasks with legacy 6502 code. :-)
+
+README.lib6502 is a copy of the original lib6502 README. You should probably go
+and read that before reading any further.
+
+lib6502-compatibility.txt documents the differences between lib6502 and
+lib6502-jit.
+
+CREDITS contains acknowledgements of the various people and groups on whose
+work lib6502-jit is built.
+
+COPYING contains license details for lib6502-jit.
+
+TODO contains some notes on possible enhancements to lib6502-jit.
+
+How to build:
+
+You'll need the following installed:
+- a C/C++ compiler (I've tested with gcc 4.7.2, gcc 4.8.2 and clang 3.5)
+- LLVM development libraries (I've tested with various 3.5 pre-release snapshots)
+- boost (including boost::thread) (I've tested with 1.49, 1.54 and 1.55)
+
+I have somewhat reluctantly set up an autotools build system; compiling and
+linking against LLVM and boost::thread on different platforms was otherwise
+just that bit too fiddly. So in theory all you need to do is:
+
+    ./configure
+    make
+
+I suggest you actually do:
+    CFLAGS='-g -O3' CXXFLAGS='-g -O3' ./configure
+to increase the optimisation level. (I would have made that the default, but
+apparently that would go against user expectations for an autotools build
+system.)
+
+"make install" should work as well if you feel inclined to do so, but it's not
+necessary.
+
+I've tested on three platforms, and for what it's worth here are more detailed
+instructions for those:
+
+Ubuntu (14.04 x86):
+    apt-get install libboost-dev libboost-thread-dev llvm-3.5-dev libedit-dev
+    export CFLAGS='-g -O3' 
+    export CXXFLAGS='-g -O3' 
+    ./configure --with-llvm-config=llvm-config-3.5
+    make
+
+Debian (7.5 x86-64):
+    apt-get install libboost-dev libboost-thread-dev 
+    [I used the llvm-3.5-dev package from the wheezy repository here: http://llvm.org/apt/]
+    export CFLAGS='-g -O3' 
+    export CXXFLAGS='-g -O3' 
+    ./configure
+    make
+
+FreeBSD (10.0-RELEASE x86-64):
+    pkg install boost-all-1.55.0
+    pkg install llvm-devel-3.5.r203994
+    export CFLAGS='-g -O3' 
+    export CXXFLAGS='-g -O3' 
+    ./configure --with-llvm-config=/usr/local/llvm-devel/bin/llvm-config
+    make
+
+There are some tests which will run if you type "make check". Some will be
+skipped unless you have the "xa" assembler
+(http://www.floodgap.com/retrotech/xa/) on your PATH.
+
+The above assumes you downloaded a lib6502-jit*tar.bz2 package, which will
+contain a "configure" script. This is not (following what I understand to be
+best practice) checked into source control, so if you downloaded the source
+using something like git or svn, you need to either:
+- download the tarball - it will be much easier, especially if you're just
+  taking a quick look at lib6502-jit and don't plan to make changes to the code
+  (yet)
+- install autoconf, automake and libtool, then cross your fingers and run
+  "autoreconf -i", which will generate a "configure" script for you if you're
+  lucky.
+
+If you have any queries, comments or bug reports, please drop me (Steven
+Flintham) an e-mail at lib6502-jit@lemma.co.uk.

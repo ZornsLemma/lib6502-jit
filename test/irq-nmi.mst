@@ -1,0 +1,21 @@
+A
+ill: address 1006 opcode 03 memory 03
+PC=1007 SP=0100 A=41 X=00 Y=00 P=00 --------
+NB
+ill: address 100C opcode 13 memory 13
+PC=100D SP=0100 A=42 X=00 Y=00 P=00 --------
+IC
+ill: address 1013 opcode 13 memory 13
+PC=1014 SP=0100 A=43 X=00 Y=00 P=04 -----I--
+
+ill: address 1014 opcode 03 memory 03
+PC=1015 SP=0100 A=43 X=00 Y=00 P=04 -----I--
+N
+ill: address 1015 opcode 13 memory 13
+PC=1016 SP=0100 A=4E X=00 Y=00 P=04 -----I--
+D
+ill: address 101C opcode 13 memory 13
+PC=101D SP=0100 A=44 X=00 Y=00 P=00 --------
+I
+BRK: address 101D opcode 00
+PC=101F SP=01FD A=49 X=00 Y=00 P=04 -----I--

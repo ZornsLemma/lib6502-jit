@@ -1,0 +1,35 @@
+
+ill: address 1000 opcode 13 memory 13
+PC=1001 SP=0100 A=00 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 3
+
+ill: address 1001 opcode 44 memory 44
+PC=1003 SP=0100 A=00 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 3
+
+ill: address 1003 opcode 5C memory 5C
+PC=1006 SP=0100 A=00 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 3
+
+call: address 2000 opcode 20
+PC=1009 SP=01FE A=00 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 2
+
+call: address 3000 opcode 4C
+PC=3000 SP=01FE A=00 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 2
+
+call: address 4000 opcode 6C
+PC=4000 SP=01FE A=40 X=00 Y=00 P=04 -----I--
+
+setjmp() returned 2
+
+BRK instruction: address 100C opcode 00
+PC=100E SP=01FD A=00 X=00 Y=00 P=06 -----IZ-
+
+setjmp() returned 1

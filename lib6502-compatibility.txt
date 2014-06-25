@@ -1,0 +1,54 @@
+At the time of writing the latest lib6502 release is v1.3; older versions are
+not considered here.
+
+Some things which work fine with lib6502 itself are not supported when using
+lib6502-jit in hybrid (the default) or compiled execution modes. All of the
+following will result in undefined behaviour unless interpreted mode is used:
+
+* Modifying memory which contains 6502 code (whether executed yet or not)
+  inside a read callback. (All other types of callbacks are allowed to
+  modify memory freely, including modifying code.)
+
+* Defining a callback after calling M6502_run(); for example, doing so inside
+  another callback.
+
+* Checking the B and X flags in the processor status register
+  (M6502_Registers.p) inside a callback. lib6502 tracks these flags as if they
+  have a real existence at all times. lib6502-jit's compiler only sets them
+  appropriately when pushing a copy of the processor status register onto the
+  stack. This difference is *not* visible to code executing on the emulated CPU,
+  only to callbacks. In hybrid mode, which behaviour you get will depend on
+  whether your callback is invoked from the interpreter or compiled code.
+
+The following differences exist between lib6502 and lib6502-jit in all modes,
+including interpreted mode:
+
+* lib6502 is likely to be slightly faster than lib6502-jit in interpreted mode,
+  since the latter's interpreter code contains additional tests to stop
+  executing at certain points after n instructions have been executed.
+
+* Illegal instructions are treated as no-ops by default in lib6502-jit; lib6502
+  aborts if an illegal instruction is executed.
+
+* Illegal instruction callbacks are a lib6502-jit extension and are not
+  available in lib6502.
+
+* Call callbacks in lib6502 always receive a 0 as the data argument;
+  lib6502-jit supplies the opcode triggering the callback as the data argument.
+
+* A few bugs in lib6502's emulation are resolved in lib6502-jit:
+  - BRK clears the D flag
+  - ADC/SBC exactly match the behaviour of a real 65C02 in decimal mode
+  - BIT #imm only modifies the Z flag, leaving N and V untouched
+  - TSB sets the Z flag correctly
+  - TRB sets the Z flag and updates memory correctly
+
+* lib6502's run6502 -B option skips every other (ROM name) argument;
+  lib6502-jit's doesn't.
+
+lib6502-jit's stance is that anything the code executing on the emulated CPU
+does is fair game and must be handled, but that the library's client code has a
+responsibility to cooperate and not do tricky things like those documented
+above. If you have what you think is a reasonable requirement for behaviour
+which is supported by lib6502 but doesn't work on lib6502-jit please get in
+touch.

@@ -1,0 +1,67 @@
+It would be interesting to see if this works OK on an ARM machine.
+
+
+Running e.g. z-self-modify-1 to completion in -mc -mx 1 mode shows the memory
+for the run6502 process grows steadily, but valgrind doesn't show any leaks. A
+quick web search suggests this might be internal leaks in LLVM (which are only
+exposed by things like this which continually JIT). I am inclined to leave this
+and perhaps come back to it once LLVM 3.5 is actuallly released; if there's
+still a problem then it might be worth tracking it down.
+
+
+Would it be helpful to pass branch weights to CreateCondBr()? For example,
+where we have a computed address which might trigger a read/write callback, we
+could calculate the proportion of addresses in the address range which have
+callbacks on them and use that as the probability of taking the callback-exists
+branch.
+
+
+We could potentially use Function objects to deduce properties of stretches of
+code and use that information to improve the generated code. For example, if we
+observed that a Function object didn't contain any external calls or any
+stack-modification instructions except RTS then we could inline it in any
+callers (adding its code ranges to their code ranges, of course) and the RTS
+could be a no-op. (For 100% accuracy, the JSR should still push the return
+address on the stack but not modify the stack pointer. Code executed later on
+might peek at the stack and expect those values to be there.) This might in
+turn allow the callers of that Function to be inlined themselves. This is just
+an example. It may be that in practice deciding when to re-translate code would
+cause a sufficient performance impact to just not be worth it in the first
+place.
+
+
+We could add support for counting the number of cycles executed by the JITted
+code; lib6502 itself has some support for this in the form of the tick* macros,
+but they don't do anything by default.
+
+
+Would there be any performance improvement to be had by having Function objects
+(tail) call one another where possible?
+
+
+Hybrid mode currently makes no attempt to avoid re-generating Function objects
+which are continually being invalidated due to self-modifying code. It might be
+nice if some heuristic caused us to avoid this unnecessary work and just let
+the interpreter always handle that code.
+
+On a related but distinct note, currently once an element of
+FunctionManager::code_at_address_ is set, it is never cleared. This might cause
+us to avoid optimistic writes which in reality would be OK. We could use some
+heuristic to decide when to destroy Function objects which have not been
+executed in a long time, and start clearing code_at_address_ elements when all
+functions covering an address are removed. (See the note in
+FunctionManager::destroyFunction(); this clearing must be done *outside* the
+loop in FunctionManager::buildFunction(), or the implementation of
+buildFunction() must be tweaked.)
+
+However, it may be that it just isn't worth being that clever. Any such code
+would need to be triggered inside the main loop between executions of Function
+objects. We could do it only every nth time, and keeping track of how many
+times we've been round probably wouldn't significantly harm performance, but be
+careful.
+
+
+Would a different default value for max_instructions be better?
+
+
+Are there any other LLVM optimisation passes which would be helpful?

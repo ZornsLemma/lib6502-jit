@@ -1,0 +1,406 @@
+lib6502 - 6502 Microprocessor Emulator
+
+EXAMPLES
+
+  This file has three sections:
+
+    1. PROGRAMS that you can compile and run
+    2. COMMANDS that you can copy and paste into a terminal
+    3. ADVANCED stuff that requires some additional setup
+
+  A few numbered footnotes appear at the end and are referenced in the
+  text in square brackets [6].
+
+----------------------------------------------------------------
+
+1.  PROGRAMS
+
+  (We're going to start in 'serious mode'.  Bear with me.)
+
+  The file 'lib1.c' contains the example from the run6502 manual page.
+  Just compile and run it:
+
+        cc -o lib1 lib1.c
+        ./lib1
+
+  The file has been commented extensively to explain exactly what is
+  going on.
+
+----------------------------------------------------------------
+
+2.  COMMANDS
+
+  (Much more fun: this is the section that appeals to the geek in me.)
+
+  6502 machine code is pretty straightforward.  (Many 6502 programmers
+  remember a time from their misguided childhood when they could
+  compose and edit programs directly in hexadecimal using their 'front
+  panel' monitor program -- the next best thing to programming with a
+  row of switches and lamps, but I digress and will leave that story
+  until the pdp11 emulator is ready. ;-)  We can use this fact to
+  generate an entire program without needing an assembler.  The 'perl'
+  program is available on most Unixy (and several other) systems and
+  makes it easy to create binary files from a string of hex digits.
+  (There is a program called 'xxd' that's very good at this kind of
+  thing, but you might not have it.)
+
+  First the program (stolen from lib1.c):
+
+        1000    ldx #41         A241
+        1002    txa             8A
+        1003    jsr FFEE        20EEFF
+        1006    inx             E8
+        1007    cpx #5B         E05B
+        1009    bne 1002        D0F7
+        100B    lda #0A         A90A
+        100D    jsr FFEE        20EEFF
+        1010    brk             00
+
+  In C-like syntax it is equivalent to:
+
+        regX = 'A';
+        do {
+          regA = regX;
+          putchar(regA);
+        } while (regX != 'Z' + 1);
+        putchar('\n');
+
+  (which by today's standards is a *huge* amount of stuff packed into
+  just 17 bytes of 'compiled' code -- on a 386 the same program is
+  around 65 bytes [1], and more like 88 bytes on a 32-bit RISC [2]).
+
+  The column on the right is the machine code in hexadecimal.  When
+  strung out in a line it looks like this:
+
+        A2418A20EEFFE8E05BD0F7A90A20EEFF00
+
+  We can tell perl to 'pack' this hexadecimal string into binary and
+  save the output in a file:
+
+        echo A2418A20EEFFE8E05BD0F7A90A20EEFF00 |
+        perl -e 'print pack "H*",<STDIN>' > temp.img
+
+  To check the contents of the file, we can load it into run6502 and
+  then disassemble it:
+
+        run6502 -l 1000 temp.img -d 1000 +11 -x
+
+  The '-l 1000 temp.img' loads the file into the 6502's memory at
+  address 0x1000, and the '-d 1000 +11' disassembles 17 bytes (11 in
+  hex) of code starting at 0x1000.  The final '-x' tells run6502 not
+  to try to execute the code.  The output should look just like the
+  program listing above.
+
+  This is almost all we need to run it; just a few details remain.
+
+    - The emulator doesn't know where to start execution.  We need to
+      set the 'reset' vector to 0x1000 -- the address of the first
+      instruction in the program.  The '-R 1000' option does this.
+
+    - The program calls the 'putchar' function at address 0xFFEE to
+      send a character to the terminal.  run6502 can emulate this for
+      us, with the '-P FFEE' option.
+
+    - We have to have some way to make the processor stop execution
+      (there is no 'halt' instruction on the 6502, at least not the
+      early versions).  The trick is in the last instruction 'BRK',
+      that generates a 'software interrupt' -- eventually jumping to
+      the addres in the 'interrupt vector'.  If we don't set the
+      interrupt vector explicitly it remains empty (zero) and BRK will
+      try to transfer control to address 0.  The '-X 0' option tells
+      run6502 to stop executing if/when the program attempts to
+      transfer control to address 0 -- which it will, when it executes
+      the 'BRK' instruction with an empty interrupt vector.  QED :-)
+
+  Here, then, is the complete command to run our program:
+
+        run6502 -l 1000 temp.img -R 1000 -P FFEE -X 0
+
+  This program is relocatable.  You can load it at address 4321
+  (change both the -l and -R options) and it will work just fine.
+
+  Google for "6502 Reference Card" (with the quotes), grab a pencil
+  and paper, and you can start writing 6502 programs immediately!  (If
+  you really want to experience what it was like in the late 1970s,
+  but without the added fun of entering each hex digit one at a time
+  into a monitor program, simply avoid the temptation ever to look at
+  your hand-assembled code with the '-d' option. ;-)
+
+  If you really start liking this and want to write longer programs in
+  text files with the hex split over many lines, you'll need a perl
+  script that can deal with newlines in the input.  Something like
+  this should do the trick...
+
+        #!/usr/bin/perl
+
+        while (<STDIN>) {
+          chomp;
+          print pack "H*", $_
+        }
+
+  (This script is included in the 'examples' directory, in a file
+  called 'hex2bin', to save you 15 seconds of copy and paste.)
+
+  Need a fun project?  Write a 6502 assembler... in 6502 machine code,
+  of course!  Read in the assembly language text via 'getchar' (see
+  the '-G' option) and write out the assembled binary via 'putchar'
+  (the '-P' option, that we've already seen).  Soon you'll be able to:
+
+        cat prog.s |
+        run6502 -l 1000 asm.img -R 1000 -G FFE0 -P FFEE -X 0 > prog.img
+
+        run6502 -l 1000 prog.img -R 1000 -G FFE0 -P FFEE -X 0
+
+  (The first prog.s you write should probably be the assembler itself,
+  transcribed from the paper copy used to hand-assemble the assembler
+  binary.  This significant milestone can be reached with a
+  surprisingly simple assembler.  After this pivotal moment the
+  assembler, assembling itself, can very quickly become very
+  powerful.)
+
+----------------------------------------------------------------
+
+3. ADVANCED
+
+  (Official justification: let's run something big and non-trivial.
+  More likely: a flimsy excuse for a trip down memory lane.)
+
+  The remaining examples assume that you have access to two ROM images
+  from the Acorn 'BBC Model B' microcomputer: the operating system and
+  the BASIC language .  (Just crawl into the attic, fire up the old
+  Beeb, '*SAVE' the images into files, and then transfer them to your
+  Unix box over RS423.  Under no circumstances should you google for
+  'Acorn BBC B OS ROMs zip', without the quotes.  That would be
+  naughty, and probably illegal -- at least until the glorious day
+  when the revolution finally comes.)
+
+  After brushing yourself down (the attic is kind of dusty, no?) save
+  the two ROM images as 'OS12.ROM' and 'BASIC2.ROM'.
+
+  The first thing we can do is use run6502 as an editor to merge the
+  two ROMs into a single image file:
+
+        run6502                         \
+          -l C000 OS12.ROM              \
+          -l 8000 BASIC2.ROM            \
+          -s 0000 +10000 bbc.img        \
+          -x
+
+  (This is a single command, with '\' continuation characters joining
+  the lines into one.  Your shell should figure it out if you just
+  copy and paste.)  It leaves a file 'bbc.img' containing both the OS
+  and BASIC.
+
+  To run this image we need the '-B' option.  It enables some minimal,
+  totally lame, hardware emulation of the BBC computer -- just enough
+  to boot the 'virtual beeb' into BASIC [3]:
+
+        run6502 -l 0 bbc.img -B
+
+  If all goes well, you should be greeted with a 'beep' and a message
+  telling you what computer you have (BBC Computer), how much RAM is
+  available (32K), the language you've been dropped into (BASIC), and
+  a '>' prompt.  Turn on 'CAPS LOCK' (many of us remember those days,
+  and some of us even used to speak in ALL CAPS) and play:
+
+        PRINT 3+4
+
+  or maybe:
+
+        10 FOR A%=1 TO 10
+        20 PRINT A%
+        30 NEXT
+        LIST
+        RUN
+
+  or even:
+
+         10 P%=&2800
+         20 O%=P%
+         30 [
+         40    opt3
+         50    lda #10
+         60    jsr &FFEE
+         70    ldx #65
+         80 .l txa
+         90    jsr &FFEE
+        100    inx
+        110    cpx #91
+        120    bne l
+        130    lda #10
+        140    jmp &FFEE
+        150 ]
+        160 CALL &2800
+        LIST
+        RUN
+
+  (How cool is that? ;-)
+
+  One final thing: there is an option '-i' that works just like '-l'
+  except that it looks to see if the image file begins with '#!'.  If
+  so, it skips over the first line of the file, up to and including
+  the first newline.  Why?  The system call that executes programs on
+  Unixy systems makes the same check.  If the user executes a text
+  file 'foo' staring with '#!prog ...' then the OS loads and runs
+  'prog' instead, passing all the '...'s and the name of the text file
+  'foo' as arguments [4].  If you have 'temp.img' left over from from
+  the second example, open it in a text editor and add a single line
+  at the beginning that reads:
+
+        #!run6502 -i 1000
+
+  (If 'run6502' is not in your current working directory then you will
+  have to use the full path to the file: '#!/usr/bin/run6502' or
+  '#!/usr/local/bin/6502' or whatever.  No spaces before the '#'!)
+
+  Now make the image executable:
+
+        chmod +x temp.img
+
+  and then (as if you hadn't already guessed) execute it:
+
+        ./temp.img
+
+  Saves an awful lot of tedious typing. [5]
+
+  Have fun!
+
+----------------------------------------------------------------
+
+FOOTNOTES
+
+
+[1] Here is the 'alphabet' program, verbatim, compiled (with
+    optimisation) on a 386.  It's 66 bytes long, almost four times
+    longer than the 6502 version.  (If I were more generous I might
+    consider that fair: 32 bits divided by 8 bits is four.)
+
+       0:   55                      push   %ebp
+       1:   89 e5                   mov    %esp,%ebp
+       3:   53                      push   %ebx
+       4:   83 ec 14                sub    $0x14,%esp
+       7:   bb 41 00 00 00          mov    $0x41,%ebx
+       c:   a1 00 00 00 00          mov    0x0,%eax
+      11:   89 44 24 04             mov    %eax,0x4(%esp)
+      15:   89 1c 24                mov    %ebx,(%esp)
+      18:   e8 fc ff ff ff          call   19 <fputc>
+      1d:   43                      inc    %ebx
+      1e:   83 fb 5b                cmp    $0x5b,%ebx
+      21:   75 e9                   jne    c <prog+0xc>
+      23:   a1 00 00 00 00          mov    0x0,%eax
+      28:   89 44 24 04             mov    %eax,0x4(%esp)
+      2c:   c7 04 24 0a 00 00 00    movl   $0xa,(%esp)
+      33:   e8 fc ff ff ff          call   34 <fputc>
+      38:   b8 00 00 00 00          mov    $0x0,%eax
+      3d:   83 c4 14                add    $0x14,%esp
+      40:   5b                      pop    %ebx
+      41:   5d                      pop    %ebp
+      42:   c3                      ret    
+
+
+[2] Here is the 'alphabet' program, verbatim, compiled (with
+    optimisation) on a PowerPC.  It's 88 bytes long, more than five
+    times longer than the 6502 version.  (I don't care what you say:
+    Apple Macs rule and mine has oodles of RAM to spare.)
+
+    00000000        mfspr   r0,lr
+    00000004        stmw    r29,0xfff4(r1)
+    00000008        stw     r0,0x8(r1)
+    0000000c        stwu    r1,0xffb0(r1)
+    00000010        bcl     20,31,0x14
+    00000014        mfspr   r31,lr
+    00000018        li      r30,0x41
+    0000001c        addis   r2,r31,ha16(0xa4-0x14)
+    00000020        lwz     r29,lo16(0xa4-0x14)(r2)
+    00000024        or      r3,r30,r30
+    00000028        addi    r4,r29,0x58
+    0000002c        bl      0x7c    ; symbol stub for: _fputc
+    00000030        cmpwi   cr7,r30,0x5a
+    00000034        addi    r30,r30,0x1
+    00000038        bne     cr7,0x24
+    0000003c        li      r3,0xa
+    00000040        bl      0x5c    ; symbol stub for: _fputc
+    00000044        li      r3,0x0
+    00000048        lwz     r0,0x58(r1)
+    0000004c        addi    r1,r1,0x50
+    00000050        mtspr   lr,r0
+    00000054        lmw     r29,0xfff4(r1)
+    00000058        blr
+
+
+[3] Time to 'fess up with an undocumented 'feature'.  We ran our
+    'bbc.img' file like this:
+
+        run6502 -l 0 bbc.img -B
+
+    I grew tired of typing all those '-'s and made run6502 check to
+    see if it was invoked with a single, non-option argument.
+    Running:
+
+        run6502 bbc.img
+
+    is precisely equivalent to the '-l -B' form above.  I don't feel
+    too guilty about this since the manual page suggests that
+    providing a single, non-option argument is illegal usage.
+
+
+[4] Okay, that might be a little confusing.  Here it is written out in
+    full.  If you have a text file called 'foo' containing
+
+        #!/usr/bin/prog -gobble
+        blah blah blah
+        blah blah blah
+
+    that is executable, and then you execute it like a compiled
+    program
+
+        ./foo
+
+    then the OS will notice the '#!' and run the following command
+    instead:
+
+        /usr/bin/prog -gobble ./foo
+
+    The '-gobble' tells 'prog' to eat the first line, leaving just the
+    blah that follows.  (The reason for choosing '#!' is that '#' is
+    the comment character in the standard Unix shell, with the obvious
+    happy consequences for shell scripts.)
+
+
+[5] We can play the same '#!' game with our 'bbc.img' file.  Open it
+    up and add the line
+
+        #!/usr/local/bin/run6502 -B -l 0
+
+    (or whatever, according to the location of the 'run6502' program),
+    make it executable
+
+        chmod +x bbc.img
+
+    and execute it:
+
+        ./bbc.img
+
+    To save a whopping 32K of zeros at the beginning of the file,
+    create the image again with
+
+        run6502                 \
+          -l C000 OS12.ROM      \
+          -l 8000 BASIC2.ROM    \
+          -s 8000 +8000 bbc.img \
+          -x
+
+    and run it with
+
+        run6502 -l 0 bbc.img -B
+
+    and, if you like, insert the single line
+
+        #!/usr/local/bin/run6502 -B -l 8000
+
+    at the start of the image file and make it executable:
+
+        ./bbc.img
+
+
+[6] There is no footnote 6.

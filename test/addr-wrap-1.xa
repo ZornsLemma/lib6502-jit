@@ -1,0 +1,25 @@
+#include "config.xa"
+
+	LDA #1
+	STA $00
+	STA $05
+	STA $0A
+	LDY #$80
+	CLC
+	LDA #0
+LOOP
+	ADC $FF80,Y
+	INY
+	BNE LOOP
+	CMP #3
+	BNE FAIL
+
+SUCCESS
+	LDA #'Y'
+	JSR OSWRCH
+	JMP QUIT
+
+FAIL
+	LDA #'N'
+	JSR OSWRCH
+	JMP QUIT

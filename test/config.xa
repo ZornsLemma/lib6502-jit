@@ -1,0 +1,4 @@
+OSWRCH = $FFEE
+QUIT = $F000
+
+*= $1E00

@@ -1,0 +1,6 @@
+#!/usr/bin/perl
+
+while (<STDIN>) {
+  chomp;
+  print pack "H*", $_
+}
